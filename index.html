@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f5f6f8">
+<title>X自動投稿</title>
+<style>
+:root {
+  --bg: #f5f6f8; --card: #ffffff; --text: #16191d; --sub: #5d6670; --line: #e2e5ea;
+  --primary: #1b6fe0; --primary-text: #ffffff; --soft: #e8f0fc;
+  --ok: #138a4b; --ok-soft: #e3f4ea; --warn: #b35c00; --warn-soft: #fff1df;
+  --danger: #c62f2f; --danger-soft: #fde8e8; --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111317; --card: #1b1e24; --text: #eef0f3; --sub: #9aa3ad; --line: #2c3139;
+    --primary: #4b95f5; --primary-text: #0b1220; --soft: #1d2a3d;
+    --ok: #4cc584; --ok-soft: #173225; --warn: #f0a24a; --warn-soft: #3a2a14;
+    --danger: #f06a6a; --danger-soft: #3d1c1c;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+  font-size: 16px; line-height: 1.6; overflow-x: hidden;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+main { max-width: 640px; margin: 0 auto; padding: 12px 16px 24px; }
+h1 { font-size: 20px; margin: 4px 0 12px; }
+h2 { font-size: 17px; margin: 22px 0 8px; }
+h2 .count { color: var(--sub); font-weight: normal; font-size: 14px; margin-left: 4px; }
+p { margin: 6px 0; }
+.sub { color: var(--sub); font-size: 14px; }
+.view[hidden] { display: none; }
+.card, .post-card, .history-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px; margin: 10px 0; overflow-wrap: anywhere;
+}
+.card-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; font-size: 14px; }
+.when { font-weight: 700; }
+.badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--soft); color: var(--primary); white-space: nowrap; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.danger { background: var(--danger-soft); color: var(--danger); }
+.badge.gray { background: var(--line); color: var(--sub); }
+.part { white-space: pre-wrap; margin: 0; }
+.part + .part { border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 8px; }
+.part-no { font-size: 12px; color: var(--sub); }
+.meta { font-size: 13px; color: var(--sub); margin-top: 6px; }
+.actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.actions button { flex: 1 1 0; min-width: 0; }
+button, .btn {
+  font: inherit; font-size: 15px; font-weight: 600; min-height: 46px; padding: 10px 14px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text);
+  cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+button:active { transform: scale(0.98); }
+button:disabled { opacity: 0.5; cursor: default; }
+button.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+button.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+button.danger { color: var(--danger); border-color: var(--danger); }
+button.wide { width: 100%; }
+input, textarea, select {
+  font: inherit; font-size: 16px; width: 100%; max-width: 100%; padding: 10px 12px; min-height: 46px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text);
+}
+textarea { resize: vertical; min-height: 96px; }
+label { display: block; font-weight: 600; font-size: 14px; margin: 14px 0 6px; }
+.hint { font-weight: normal; color: var(--sub); font-size: 13px; }
+.counter { text-align: right; font-size: 12px; color: var(--sub); margin-top: 2px; }
+.counter.over { color: var(--danger); font-weight: 700; }
+.edit-box { margin-top: 4px; }
+.edit-box .edit-part { margin-top: 6px; }
+.seg { display: flex; gap: 8px; }
+.seg button { flex: 1; }
+.seg button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; min-width: 0; }
+.times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.times[hidden], .time-wrap[hidden] { display: none; }
+.time-wrap span { font-size: 12px; color: var(--sub); }
+.empty { color: var(--sub); text-align: center; padding: 18px 8px; border: 1px dashed var(--line); border-radius: var(--radius); margin: 10px 0; }
+.notice { border-radius: var(--radius); padding: 12px 14px; margin: 10px 0; font-size: 14px; }
+.notice.info { background: var(--soft); }
+.notice.warn { background: var(--warn-soft); color: var(--warn); }
+.notice.danger { background: var(--danger-soft); color: var(--danger); }
+.errors { margin: 10px 0; padding-left: 20px; color: var(--danger); font-size: 14px; }
+.errors:empty { display: none; }
+#paused-banner {
+  position: sticky; top: 0; z-index: 5; background: var(--danger); color: #fff; text-align: center;
+  font-weight: 700; padding: 10px 16px; font-size: 15px;
+}
+#paused-banner[hidden] { display: none; }
+.list-plain { list-style: none; margin: 0; padding: 0; }
+.list-plain li { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; overflow-wrap: anywhere; }
+.run { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.run a { color: var(--text); text-decoration: none; min-width: 0; }
+.run .run-name { display: block; font-size: 14px; font-weight: 600; }
+.run .run-time { font-size: 12px; color: var(--sub); }
+a { color: var(--primary); }
+nav.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex;
+  background: var(--card); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
+}
+nav.tabs button {
+  flex: 1; border: 0; border-radius: 0; background: transparent; min-height: 62px; padding: 6px 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-size: 12px; font-weight: 600; color: var(--sub);
+}
+nav.tabs button .ico { font-size: 20px; line-height: 1; }
+nav.tabs button[aria-selected="true"] { color: var(--primary); }
+#toast {
+  position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
+  max-width: 560px; margin: 0 auto; background: #16191d; color: #fff; padding: 12px 16px; border-radius: 12px;
+  font-size: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+#toast.show { opacity: 1; }
+#toast.error { background: var(--danger); }
+.modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal-back[hidden] { display: none; }
+.modal { background: var(--card); border-radius: var(--radius); padding: 18px; width: 100%; max-width: 420px; }
+.modal p { white-space: pre-wrap; margin: 0 0 14px; }
+.busy-note { font-size: 13px; color: var(--warn); margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="paused-banner" hidden>⏸ 緊急停止中です（下書き作成も投稿もしません）</div>
+
+<main>
+  <!-- ホーム -->
+  <section id="view-home" class="view">
+    <h1>X自動投稿</h1>
+    <div id="home-notice"></div>
+
+    <div class="card">
+      <div class="sub" style="margin-bottom:6px">投稿のしかた</div>
+      <div class="seg">
+        <button id="mode-approval" type="button" aria-pressed="true">承認してから投稿</button>
+        <button id="mode-auto" type="button" aria-pressed="false">完全自動</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="plan-now" type="button">今すぐ下書き</button>
+        <button id="pause-btn" type="button" class="danger">緊急停止</button>
+      </div>
+    </div>
+
+    <h2>承認待ち<span class="count" id="pending-count"></span></h2>
+    <div id="pending-list"></div>
+
+    <h2>予約済み<span class="count" id="scheduled-count"></span></h2>
+    <div id="scheduled-list"></div>
+
+    <h2>最近の自動実行</h2>
+    <ul id="runs-list" class="list-plain"></ul>
+    <button id="reload-btn" type="button" class="wide" style="margin-top:8px">最新の内容を読み直す</button>
+  </section>
+
+  <!-- ネタ帳 -->
+  <section id="view-neta" class="view" hidden>
+    <h1>ネタ帳</h1>
+    <p class="sub">思いついたことをメモしておくと、AIがそれをもとに投稿を書きます。1行に1つずつ書けます。</p>
+    <textarea id="neta-input" placeholder="例：朝の散歩で気づいたこと"></textarea>
+    <button id="neta-submit" type="button" class="primary wide" style="margin-top:8px">ネタ帳に追加</button>
+
+    <h2>未使用<span class="count" id="neta-pending-count"></span></h2>
+    <ul id="neta-pending-list" class="list-plain"></ul>
+
+    <h2>使用済み<span class="count" id="neta-used-count"></span></h2>
+    <ul id="neta-used-list" class="list-plain"></ul>
+  </section>
+
+  <!-- 履歴 -->
+  <section id="view-history" class="view" hidden>
+    <h1>投稿履歴</h1>
+    <div id="history-list"></div>
+    <h2>投稿しなかったもの</h2>
+    <p class="sub">失敗・期限切れ・似ていたので見送ったもの（14日分）</p>
+    <div id="trouble-list"></div>
+  </section>
+
+  <!-- 設定 -->
+  <section id="view-settings" class="view" hidden>
+    <h1>設定</h1>
+
+    <h2>GitHub との接続</h2>
+    <div class="card">
+      <p class="sub">この端末のブラウザにだけ保存します。リポジトリには書きません。</p>
+      <label for="conn-owner">GitHub のユーザー名</label>
+      <input id="conn-owner" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：yamada">
+      <label for="conn-repo">リポジトリ名</label>
+      <input id="conn-repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：x-auto-post">
+      <label for="conn-token">アクセストークン <span class="hint">（Contents と Actions を Read and write）</span></label>
+      <input id="conn-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_...">
+      <div id="conn-status"></div>
+      <div class="row" style="margin-top:12px">
+        <button id="conn-save" type="button" class="primary">接続</button>
+        <button id="conn-clear" type="button">この端末から消す</button>
+      </div>
+    </div>
+
+    <h2>アカウントと発信内容</h2>
+    <div class="card">
+      <label for="set-handle">X のアカウント名 <span class="hint">（@なし・英数字と _ で15文字まで）</span></label>
+      <input id="set-handle" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：yamada_taro">
+      <label for="set-persona">あなたの立場</label>
+      <input id="set-persona" placeholder="例：会社員で、週末に家庭菜園をしている">
+      <label for="set-audience">届けたい相手</label>
+      <input id="set-audience" placeholder="例：家庭菜園を始めたい人">
+      <label for="set-themes">発信テーマ <span class="hint">（1行に1つ）</span></label>
+      <textarea id="set-themes" placeholder="例：&#10;家庭菜園&#10;季節の野菜"></textarea>
+    </div>
+
+    <h2>投稿の数と時間</h2>
+    <div class="card">
+      <label for="set-posts-per-day">1日の投稿の数</label>
+      <select id="set-posts-per-day"></select>
+      <label>投稿の時間 <span class="hint">（6:30〜23:30・30分以上あける）</span></label>
+      <div class="times" id="times-box"></div>
+      <label for="set-max-per-day">1日の投稿の上限 <span class="hint">（安全装置・1〜50）</span></label>
+      <input id="set-max-per-day" type="number" inputmode="numeric" min="1" max="50">
+      <label for="set-long">投稿の長さ</label>
+      <select id="set-long">
+        <option value="280">短め（日本語140文字まで）</option>
+        <option value="2000">長め（日本語1000文字まで・X Premium が必要）</option>
+      </select>
+    </div>
+    <ul id="settings-errors" class="errors"></ul>
+    <button id="settings-save" type="button" class="primary wide">設定を保存</button>
+  </section>
+</main>
+
+<nav class="tabs" role="tablist">
+  <button id="tab-btn-home" type="button" role="tab" aria-selected="true" data-view="view-home"><span class="ico">🏠</span>ホーム</button>
+  <button id="tab-btn-neta" type="button" role="tab" aria-selected="false" data-view="view-neta"><span class="ico">📝</span>ネタ帳</button>
+  <button id="tab-btn-history" type="button" role="tab" aria-selected="false" data-view="view-history"><span class="ico">🕘</span>履歴</button>
+  <button id="tab-btn-settings" type="button" role="tab" aria-selected="false" data-view="view-settings"><span class="ico">⚙️</span>設定</button>
+</nav>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div id="modal" class="modal-back" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <p id="modal-text"></p>
+    <div class="row">
+      <button id="modal-no" type="button">やめる</button>
+      <button id="modal-yes" type="button" class="primary">はい</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ===== 決まった値 =====
+const API = "https://api.github.com";
+const DEFAULT_TIMES = ["07:30", "09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00"];
+const ACTIVE = ["pending", "approved", "ready"];
+const STATUS_LABEL = {
+  pending: ["承認待ち", "warn"], approved: ["承認ずみ", "ok"], ready: ["完全自動で予約", "ok"],
+  posted: ["投稿ずみ", "ok"], partial: ["途中まで投稿", "danger"], failed: ["失敗", "danger"],
+  rejected: ["却下", "gray"], cancelled: ["取り消し", "gray"], expired: ["期限切れ", "gray"],
+  skipped: ["似ていたので見送り", "gray"]
+};
+const LS = { owner: "xpost.owner", repo: "xpost.repo", token: "xpost.token" };
+
+// ===== 状態 =====
+const state = {
+  conn: null, settings: null, queue: [], history: [], neta: { unused: [], used: [] },
+  runs: [], defaultBranch: null, editing: {}, busy: {}, loadError: ""
+};
+const $ = (id) => document.getElementById(id);
+
+// ===== 小さな道具 =====
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+const jstFormat = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit"
+});
+function jst(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? "" : jstFormat.format(d);
+}
+function storageGet(key) { try { return localStorage.getItem(key) || ""; } catch (e) { return ""; } }
+function storageSet(key, v) { try { localStorage.setItem(key, v); } catch (e) { /* 保存できない環境 */ } }
+function storageDel(key) { try { localStorage.removeItem(key); } catch (e) { /* 保存できない環境 */ } }
+
+let toastTimer = null;
+function toast(msg, isError) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.toggle("error", !!isError);
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), isError ? 6000 : 3500);
+}
+
+function ask(message) {
+  return new Promise((resolve) => {
+    $("modal-text").textContent = message;
+    $("modal").hidden = false;
+    const done = (v) => { $("modal").hidden = true; $("modal-yes").onclick = $("modal-no").onclick = null; resolve(v); };
+    $("modal-yes").onclick = () => done(true);
+    $("modal-no").onclick = () => done(false);
+  });
+}
+
+// X と同じ文字数の数え方（設計書「7.」）
+const URL_RE = /https?:\/\/[A-Za-z0-9\-._~:/?#[\]@!$&'()*+,;=%]+/g;
+function weight(ch) {
+  const c = ch.codePointAt(0);
+  return (c <= 4351 || (c >= 8192 && c <= 8205) || (c >= 8208 && c <= 8223) || (c >= 8242 && c <= 8247)) ? 1 : 2;
+}
+function countLength(text) {
+  const t = text.normalize("NFC");
+  let total = 0, pos = 0, m;
+  URL_RE.lastIndex = 0;
+  while ((m = URL_RE.exec(t)) !== null) {
+    for (const ch of t.slice(pos, m.index)) total += weight(ch);
+    total += 23;
+    pos = m.index + m[0].length;
+  }
+  for (const ch of t.slice(pos)) total += weight(ch);
+  return total;
+}
+function hasUrl(text) { URL_RE.lastIndex = 0; return URL_RE.test(text); }
+
+// ===== GitHub API =====
+class ApiError extends Error {
+  constructor(status, message) { super(message); this.status = status; }
+}
+function errorText(status) {
+  if (status === 401) return "アクセストークンが無効か、期限切れです";
+  if (status === 403) return "権限が足りません（トークンの Contents と Actions を Read and write に）";
+  if (status === 404) return "見つかりません（ユーザー名・リポジトリ名と、トークンで選んだリポジトリを確かめてください）";
+  if (status === 409) return "ほかの変更とぶつかりました。もう一度お試しください";
+  if (status === 422) return "送った内容が受け付けられませんでした（ワークフローがまだ初期ブランチにないかもしれません）";
+  if (status === 0) return "通信できませんでした（電波を確かめてください）";
+  return "GitHub でエラーが起きました（" + status + "）";
+}
+function repoUrl(path) {
+  const c = state.conn;
+  let url = API + "/repos/" + encodeURIComponent(c.owner) + "/" + encodeURIComponent(c.repo) + (path || "");
+  while (url.endsWith("/")) url = url.slice(0, -1);   // 最後の『/』は取り除く
+  return url;
+}
+async function api(method, path, body, accept) {
+  if (!state.conn) throw new ApiError(0, "まだ接続していません");
+  let res;
+  try {
+    res = await fetch(repoUrl(path), {
+      method,
+      cache: "no-store",
+      headers: {
+        "Authorization": "Bearer " + state.conn.token,
+        "Accept": accept || "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(body ? { "Content-Type": "application/json" } : {})
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch (e) {
+    throw new ApiError(0, errorText(0));
+  }
+  if (!res.ok) throw new ApiError(res.status, errorText(res.status));
+  if (res.status === 204) return null;
+  return accept && accept.includes("raw") ? res.text() : res.json();
+}
+function decodeBase64(b64) {
+  const bin = atob(b64.replace(/\s/g, ""));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+function encodeBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+async function readFile(path) {
+  const data = await api("GET", "/contents/" + path);
+  let text;
+  if (data.content) text = decodeBase64(data.content);
+  else text = await api("GET", "/contents/" + path, null, "application/vnd.github.raw+json"); // 1MB をこえるとき
+  return { text, sha: data.sha };
+}
+async function readJsonList(path) {
+  try {
+    const v = JSON.parse((await readFile(path)).text || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch (e) {
+    if (e.status === 404) return [];
+    throw e;
+  }
+}
+async function readSettings() {
+  const f = await readFile("settings.json");
+  return { data: JSON.parse(f.text), sha: f.sha };
+}
+async function writeSettings(data, sha) {
+  return api("PUT", "/contents/settings.json", {
+    message: "操作画面から設定を変更",
+    content: encodeBase64(JSON.stringify(data, null, 2) + "\n"),
+    sha
+  });
+}
+// 設定を読み、change で変えて保存する。409 なら読み直して1回だけやり直す
+async function updateSettings(change) {
+  let cur = await readSettings();
+  try {
+    await writeSettings(change({ ...cur.data }), cur.sha);
+  } catch (e) {
+    if (e.status !== 409) throw e;
+    cur = await readSettings();
+    await writeSettings(change({ ...cur.data }), cur.sha);
+  }
+  state.settings = (await readSettings()).data;
+}
+async function defaultBranch() {
+  if (!state.defaultBranch) state.defaultBranch = (await api("GET", "")).default_branch;
+  return state.defaultBranch;
+}
+async function runWorkflow(file, inputs) {
+  const body = { ref: await defaultBranch() };
+  if (inputs) body.inputs = inputs;
+  await api("POST", "/actions/workflows/" + file + "/dispatches", body);
+}
+async function control(action, id, text) {
+  await runWorkflow("control.yml", { action, id: id || "", text: text || "" });
+}
+
+// ===== データの読み込み =====
+function parseNeta(text) {
+  const out = { unused: [], used: [] };
+  let section = null;
+  for (const line of String(text || "").split(/\r?\n/)) {
+    if (line.startsWith("#")) {
+      const h = line.trim();
+      section = h === "## 未使用" ? "unused" : h === "## 使用済み" ? "used" : null;
+      continue;
+    }
+    if (section && line.startsWith("- ") && line.slice(2).trim()) out[section].push(line.slice(2).trim());
+  }
+  return out;
+}
+
+let loading = false;
+async function loadAll() {
+  if (!state.conn || loading) return;
+  loading = true;
+  try {
+    const [settings, queue, history, netaText, runs] = await Promise.all([
+      readSettings(),
+      readJsonList("data/queue.json"),
+      readJsonList("data/history.json"),
+      readFile("neta.md").then((f) => f.text).catch((e) => { if (e.status === 404) return ""; throw e; }),
+      api("GET", "/actions/runs?per_page=8").then((r) => r.workflow_runs || []).catch(() => [])
+    ]);
+    state.settings = settings.data;
+    state.queue = queue;
+    state.history = history;
+    state.neta = parseNeta(netaText);
+    state.runs = runs;
+    state.loadError = "";
+  } catch (e) {
+    state.loadError = e.message;
+  } finally {
+    loading = false;
+  }
+  renderAll();
+}
+let reloadTimers = [];
+function reloadSoon() {
+  reloadTimers.forEach(clearTimeout);
+  reloadTimers = [20000, 45000, 90000].map((ms) => setTimeout(loadAll, ms));
+}
+
+// ===== 画面を描く =====
+function statusBadge(status) {
+  const [label, kind] = STATUS_LABEL[status] || [status, "gray"];
+  return '<span class="badge ' + kind + '">' + esc(label) + "</span>";
+}
+function partsHtml(parts) {
+  const many = parts.length > 1;
+  return parts.map((p, i) =>
+    '<div class="part">' + (many ? '<span class="part-no">' + (i + 1) + "/" + parts.length + "</span>\n" : "") + esc(p) + "</div>"
+  ).join("");
+}
+function maxLength() { return (state.settings && Number(state.settings.max_length)) || 280; }
+function maxParts() { return (state.settings && Number(state.settings.thread_max_parts)) || 5; }
+
+function isBusy(item) {
+  const b = state.busy[item.id];
+  if (!b) return false;
+  if (item.status !== b.status || Date.now() - b.at > 3 * 60 * 1000) { delete state.busy[item.id]; return false; }
+  return true;
+}
+
+function postCard(item) {
+  const pending = item.status === "pending";
+  const editing = state.editing[item.id];
+  const busy = isBusy(item);
+  let html = '<div class="post-card" data-id="' + esc(item.id) + '">' +
+    '<div class="card-head"><span class="when">' + esc(jst(item.scheduled_at)) + "</span>" + statusBadge(item.status) +
+    '<span class="badge gray">' + (item.source === "neta" ? "ネタ帳から" : "テーマ：" + esc(item.theme || "")) + "</span></div>";
+  if (editing) {
+    html += '<div class="edit-box">' + editing.map((p, i) =>
+      '<textarea class="edit-part" data-index="' + i + '" aria-label="' + (i + 1) + 'つ目の投稿">' + esc(p) + "</textarea>" +
+      '<div class="counter" data-counter="' + i + '"></div>'
+    ).join("") + "</div>" +
+      '<div class="actions">' +
+      (editing.length < maxParts() ? '<button type="button" data-action="add-part">＋ 続きを足す</button>' : "") +
+      '<button type="button" data-action="cancel-edit">修正をやめる</button></div>' +
+      '<div class="actions"><button type="button" class="primary" data-action="save-edit">修正して承認</button></div>';
+  } else {
+    html += partsHtml(item.parts || []);
+    if (item.neta) html += '<div class="meta">ネタ：' + esc(item.neta) + "</div>";
+    html += '<div class="actions">' + (pending
+      ? '<button type="button" class="ok" data-action="approve"' + (busy ? " disabled" : "") + '>承認</button>' +
+        '<button type="button" data-action="edit"' + (busy ? " disabled" : "") + '>修正</button>' +
+        '<button type="button" class="danger" data-action="reject"' + (busy ? " disabled" : "") + '>却下</button>'
+      : '<button type="button" data-action="edit"' + (busy ? " disabled" : "") + '>修正</button>' +
+        '<button type="button" class="danger" data-action="cancel"' + (busy ? " disabled" : "") + '>取り消し</button>') + "</div>";
+    if (busy) html += '<div class="busy-note">反映中です（1分ほどかかります）…</div>';
+  }
+  return html + "</div>";
+}
+
+function renderHome(force) {
+  const s = state.settings;
+  const notice = [];
+  if (!state.conn) notice.push('<div class="notice info">はじめに「設定」タブで GitHub と接続してください。</div>');
+  if (state.loadError) notice.push('<div class="notice danger">読み込めませんでした：' + esc(state.loadError) + "</div>");
+  if (s && !(String(s.handle || "").trim() && (s.themes || []).length)) {
+    notice.push('<div class="notice warn">まだ初期設定がすんでいません。「設定」タブで、アカウント名とテーマを入れてください。</div>');
+  }
+  $("home-notice").innerHTML = notice.join("");
+
+  const items = state.queue.filter((q) => ACTIVE.includes(q.status))
+    .sort((a, b) => String(a.scheduled_at).localeCompare(String(b.scheduled_at)));
+  const pending = items.filter((q) => q.status === "pending");
+  const scheduled = items.filter((q) => q.status !== "pending");
+  $("pending-count").textContent = pending.length ? pending.length + "件" : "";
+  $("scheduled-count").textContent = scheduled.length ? scheduled.length + "件" : "";
+  const typing = document.activeElement && document.activeElement.classList.contains("edit-part");
+  if (force || !typing) renderLists(pending, scheduled);
+  renderOps(s);
+}
+
+function renderLists(pending, scheduled) {
+  $("pending-list").innerHTML = pending.length ? pending.map(postCard).join("") : '<div class="empty">承認待ちの下書きはありません</div>';
+  $("scheduled-list").innerHTML = scheduled.length ? scheduled.map(postCard).join("") : '<div class="empty">予約済みの投稿はありません</div>';
+  document.querySelectorAll(".edit-part").forEach(updateCounter);
+}
+
+function renderOps(s) {
+  const auto = s && s.mode === "auto";
+  $("mode-approval").setAttribute("aria-pressed", String(!auto));
+  $("mode-auto").setAttribute("aria-pressed", String(!!auto));
+  const paused = !!(s && s.paused);
+  $("pause-btn").textContent = paused ? "再開" : "緊急停止";
+  $("pause-btn").classList.toggle("danger", !paused);
+  $("pause-btn").classList.toggle("ok", paused);
+  $("paused-banner").hidden = !paused;
+
+  $("runs-list").innerHTML = state.runs.length ? state.runs.map((r) => {
+    let label = ["実行中", "warn"];
+    if (r.status === "completed") {
+      label = r.conclusion === "success" ? ["成功", "ok"] : r.conclusion === "cancelled" || r.conclusion === "skipped" ? ["中止", "gray"] : ["失敗", "danger"];
+    }
+    return '<li class="run"><a href="' + esc(r.html_url) + '" target="_blank" rel="noopener"><span class="run-name">' + esc(r.name) +
+      '</span><span class="run-time">' + esc(jst(r.created_at)) + '</span></a><span class="badge ' + label[1] + '">' + label[0] + "</span></li>";
+  }).join("") : '<li class="sub">まだありません</li>';
+}
+
+function renderNeta() {
+  const { unused, used } = state.neta;
+  $("neta-pending-count").textContent = unused.length ? unused.length + "件" : "";
+  $("neta-used-count").textContent = used.length ? used.length + "件" : "";
+  $("neta-pending-list").innerHTML = unused.length ? unused.map((n) => "<li>" + esc(n) + "</li>").join("") : '<li class="sub">まだありません</li>';
+  $("neta-used-list").innerHTML = used.length ? used.slice(0, 50).map((n) => "<li>" + esc(n) + "</li>").join("") : '<li class="sub">まだありません</li>';
+}
+
+function tweetLink(id) {
+  const handle = state.settings && state.settings.handle;
+  if (!id || String(id).startsWith("dry-run")) return "";
+  return "https://x.com/" + encodeURIComponent(handle || "i") + "/status/" + encodeURIComponent(id);
+}
+function renderHistory() {
+  const list = state.history.slice().sort((a, b) => String(b.posted_at).localeCompare(String(a.posted_at)));
+  $("history-list").innerHTML = list.length ? list.map((h) => {
+    const ids = h.tweet_ids || [];
+    const link = tweetLink(ids[0]);
+    const dry = ids.length && String(ids[0]).startsWith("dry-run");
+    return '<div class="history-card"><div class="card-head"><span class="when">' + esc(jst(h.posted_at)) + "</span>" +
+      (dry ? '<span class="badge warn">試運転</span>' : "") +
+      '<span class="badge gray">' + (h.source === "neta" ? "ネタ帳から" : "テーマから") + "</span></div>" +
+      partsHtml(h.parts || []) + (link ? '<div class="meta"><a href="' + esc(link) + '" target="_blank" rel="noopener">X で見る</a></div>' : "") + "</div>";
+  }).join("") : '<div class="empty">まだ投稿はありません</div>';
+
+  const trouble = state.queue.filter((q) => ["failed", "partial", "expired", "skipped"].includes(q.status))
+    .sort((a, b) => String(b.scheduled_at).localeCompare(String(a.scheduled_at)));
+  $("trouble-list").innerHTML = trouble.length ? trouble.map((q) =>
+    '<div class="history-card"><div class="card-head"><span class="when">' + esc(jst(q.scheduled_at)) + "</span>" + statusBadge(q.status) + "</div>" +
+    partsHtml(q.parts || []) + (q.error ? '<div class="meta">' + esc(q.error) + "</div>" : "") + "</div>"
+  ).join("") : '<div class="empty">ありません</div>';
+}
+
+// 投稿時間の欄：保存ずみの時刻を使い、足りない分は初期値で補う（同じ時刻は飛ばす）
+function fillTimes(saved) {
+  const times = (Array.isArray(saved) ? saved : []).filter((t) => /^\d{1,2}:\d{2}$/.test(t)).map((t) => t.padStart(5, "0")).slice(0, 10);
+  for (const t of DEFAULT_TIMES) {
+    if (times.length >= 10) break;
+    if (!times.includes(t)) times.push(t);
+  }
+  return times;
+}
+function showTimeFields() {
+  const n = Number($("set-posts-per-day").value) || 1;
+  for (let i = 1; i <= 10; i++) $("time-wrap-" + i).hidden = i > n;
+}
+let settingsFilled = false;
+function renderSettings(force) {
+  const s = state.settings;
+  if (!s || (settingsFilled && !force)) return;
+  settingsFilled = true;
+  $("set-handle").value = s.handle || "";
+  $("set-persona").value = s.persona || "";
+  $("set-audience").value = s.audience || "";
+  $("set-themes").value = (s.themes || []).join("\n");
+  $("set-posts-per-day").value = String(Math.min(Math.max(Number(s.posts_per_day) || 1, 1), 10));
+  fillTimes(s.post_times).forEach((t, i) => { $("set-time-" + (i + 1)).value = t; });
+  $("set-max-per-day").value = s.max_posts_per_day == null ? 10 : s.max_posts_per_day;
+  $("set-long").value = Number(s.max_length) > 280 ? "2000" : "280";
+  showTimeFields();
+}
+
+function renderAll() {
+  renderHome();
+  renderNeta();
+  renderHistory();
+  renderSettings(false);
+}
+
+// ===== タブ =====
+function showView(viewId) {
+  document.querySelectorAll(".view").forEach((v) => { v.hidden = v.id !== viewId; });
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === viewId)));
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+
+// ===== 下書きカードの操作 =====
+function findItem(id) { return state.queue.find((q) => q.id === id); }
+function updateCounter(ta) {
+  const n = countLength(ta.value);
+  const c = ta.parentElement.querySelector('[data-counter="' + ta.dataset.index + '"]');
+  if (!c) return;
+  const max = maxLength();
+  c.textContent = n + " / " + max + (hasUrl(ta.value) ? "（URLは入れられません）" : "");
+  c.classList.toggle("over", n > max || hasUrl(ta.value));
+}
+function checkParts(parts) {
+  if (!parts.length) return "本文が空です";
+  if (parts.length > maxParts()) return "スレッドは" + maxParts() + "つまでです";
+  for (let i = 0; i < parts.length; i++) {
+    if (hasUrl(parts[i])) return (i + 1) + "つ目の投稿にURLが入っています。URLは入れられません";
+    if (countLength(parts[i]) > maxLength()) return (i + 1) + "つ目の投稿が長すぎます（" + countLength(parts[i]) + " / " + maxLength() + "）";
+  }
+  return null;
+}
+
+async function sendControl(item, action, text, doneMsg) {
+  try {
+    await control(action, item.id, text);
+    state.busy[item.id] = { status: item.status, at: Date.now() };
+    toast(doneMsg + "（反映まで1分ほどかかります）");
+    reloadSoon();
+  } catch (e) {
+    toast(e.message, true);
+  }
+  renderHome(true);
+}
+
+document.addEventListener("input", (ev) => {
+  const ta = ev.target;
+  if (!ta.classList || !ta.classList.contains("edit-part")) return;
+  const id = ta.closest(".post-card").dataset.id;
+  if (state.editing[id]) state.editing[id][Number(ta.dataset.index)] = ta.value;
+  updateCounter(ta);
+});
+
+document.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("button[data-action]");
+  if (!btn) return;
+  const card = btn.closest(".post-card");
+  if (!card) return;
+  const item = findItem(card.dataset.id);
+  if (!item) return;
+  const action = btn.dataset.action;
+  if (action === "approve") {
+    btn.disabled = true;
+    await sendControl(item, "approve", "", "承認しました");
+  } else if (action === "reject") {
+    if (!(await ask("この下書きを却下しますか？"))) return;
+    await sendControl(item, "reject", "", "却下しました");
+  } else if (action === "cancel") {
+    if (!(await ask("この予約を取り消しますか？"))) return;
+    await sendControl(item, "cancel", "", "取り消しました");
+  } else if (action === "edit") {
+    state.editing[item.id] = (item.parts || [""]).slice();
+    renderHome(true);
+    const first = document.querySelector('.post-card[data-id="' + CSS.escape(item.id) + '"] .edit-part');
+    if (first) first.focus();
+  } else if (action === "add-part") {
+    state.editing[item.id].push("");
+    renderHome(true);
+  } else if (action === "cancel-edit") {
+    delete state.editing[item.id];
+    renderHome(true);
+  } else if (action === "save-edit") {
+    const parts = state.editing[item.id].map((p) => p.trim()).filter((p) => p);
+    const problem = checkParts(parts);
+    if (problem) { toast(problem, true); return; }
+    delete state.editing[item.id];
+    await sendControl(item, "edit", parts.join("\n---\n"), "修正して承認しました");
+  }
+});
+
+// ===== 運用（モード・緊急停止・今すぐ下書き） =====
+async function changeSettings(change, doneMsg) {
+  try {
+    await updateSettings(change);
+    toast(doneMsg);
+    renderHome();
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+$("mode-approval").addEventListener("click", async () => {
+  if (!state.settings || state.settings.mode !== "auto") return;
+  await changeSettings((s) => ({ ...s, mode: "approval" }), "承認してから投稿するモードにしました");
+});
+$("mode-auto").addEventListener("click", async () => {
+  if (!state.settings || state.settings.mode === "auto") return;
+  if (!(await ask("完全自動にしますか？\nこれからAIが作った下書きは、承認なしで投稿されます。"))) return;
+  await changeSettings((s) => ({ ...s, mode: "auto" }), "完全自動にしました");
+});
+$("pause-btn").addEventListener("click", async () => {
+  if (!state.settings) return;
+  if (state.settings.paused) {
+    await changeSettings((s) => ({ ...s, paused: false }), "再開しました");
+  } else {
+    if (!(await ask("緊急停止しますか？\n下書き作成も投稿も止まります。"))) return;
+    await changeSettings((s) => ({ ...s, paused: true }), "緊急停止しました");
+  }
+});
+$("plan-now").addEventListener("click", async () => {
+  const b = $("plan-now");
+  b.disabled = true;
+  try {
+    await runWorkflow("plan.yml");
+    toast("下書きづくりを始めました（1〜2分かかります）");
+    reloadSoon();
+  } catch (e) {
+    toast(e.message, true);
+  }
+  setTimeout(() => { b.disabled = false; }, 5000);
+});
+$("reload-btn").addEventListener("click", async () => {
+  await loadAll();
+  toast(state.loadError ? state.loadError : "読み直しました", !!state.loadError);
+});
+
+// ===== ネタ帳 =====
+$("neta-submit").addEventListener("click", async () => {
+  const text = $("neta-input").value.split(/\r?\n/).map((l) => l.trim()).filter((l) => l).join("\n");
+  if (!text) { toast("ネタを書いてください", true); return; }
+  const b = $("neta-submit");
+  b.disabled = true;
+  try {
+    await control("neta-add", "", text);
+    $("neta-input").value = "";
+    toast("ネタ帳に追加しました（反映まで1分ほどかかります）");
+    reloadSoon();
+  } catch (e) {
+    toast(e.message, true);
+  }
+  b.disabled = false;
+});
+
+// ===== 設定 =====
+(function buildSettingsForm() {
+  const sel = $("set-posts-per-day");
+  for (let i = 1; i <= 10; i++) sel.insertAdjacentHTML("beforeend", '<option value="' + i + '">' + i + "件</option>");
+  const box = $("times-box");
+  for (let i = 1; i <= 10; i++) {
+    box.insertAdjacentHTML("beforeend", '<div class="time-wrap" id="time-wrap-' + i + '"><span>' + i + "つ目</span>" +
+      '<input type="time" id="set-time-' + i + '" step="60" value="' + DEFAULT_TIMES[i - 1] + '" aria-label="' + i + 'つ目の投稿時間"></div>');
+  }
+  sel.addEventListener("change", showTimeFields);
+  showTimeFields();
+})();
+
+function toMinutes(t) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t || "");
+  return m ? Number(m[1]) * 60 + Number(m[2]) : NaN;
+}
+function readSettingsForm() {
+  const n = Number($("set-posts-per-day").value);
+  const times = [];
+  for (let i = 1; i <= n; i++) times.push($("set-time-" + i).value);
+  return {
+    handle: $("set-handle").value.trim().replace(/^@/, ""),
+    persona: $("set-persona").value.trim(),
+    audience: $("set-audience").value.trim(),
+    themes: $("set-themes").value.split(/\r?\n/).map((t) => t.trim()).filter((t) => t),
+    posts_per_day: n,
+    post_times: times,
+    max_posts_per_day: Number($("set-max-per-day").value),
+    max_length: Number($("set-long").value)
+  };
+}
+function validateSettings(f) {
+  const errors = [];
+  if (!/^[A-Za-z0-9_]{1,15}$/.test(f.handle)) errors.push("アカウント名は、英数字と _ の15文字以内で入れてください。");
+  if (!f.themes.length) errors.push("発信テーマを1つ以上入れてください。");
+  const mins = f.post_times.map(toMinutes);
+  if (mins.some((m) => isNaN(m))) errors.push("投稿の時間をすべて入れてください。");
+  else {
+    if (mins.some((m) => m < 6 * 60 + 30 || m > 23 * 60 + 30)) errors.push("投稿の時間は 6:30〜23:30 の間にしてください。");
+    const sorted = mins.slice().sort((a, b) => a - b);
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] - sorted[i - 1] < 30) { errors.push("投稿の時間は、30分以上あけてください。"); break; }
+    }
+  }
+  const max = f.max_posts_per_day;
+  if (!Number.isInteger(max) || max < 1 || max > 50) errors.push("1日の投稿の上限は、1〜50 の数にしてください。");
+  else if (max < f.posts_per_day) errors.push("1日の投稿の上限は、1日の投稿の数（" + f.posts_per_day + "件）以上にしてください。");
+  return errors;
+}
+$("settings-save").addEventListener("click", async () => {
+  if (!state.conn) { toast("先に GitHub と接続してください", true); return; }
+  const f = readSettingsForm();
+  const errors = validateSettings(f);
+  $("settings-errors").innerHTML = errors.map((e) => "<li>" + esc(e) + "</li>").join("");
+  if (errors.length) { toast("保存できません。赤い文字を確かめてください", true); return; }
+  const b = $("settings-save");
+  b.disabled = true;
+  try {
+    await updateSettings((s) => ({ ...s, ...f }));
+    toast("設定を保存しました");
+    renderSettings(true);
+    renderHome();
+  } catch (e) {
+    toast(e.message, true);
+  }
+  b.disabled = false;
+});
+
+// ===== 接続 =====
+function cleanRepo(v) {
+  let r = v.trim().replace(/\.git$/, "");
+  while (r.endsWith("/")) r = r.slice(0, -1);
+  return r.includes("/") ? r.slice(r.lastIndexOf("/") + 1) : r;
+}
+function setConnStatus(html) { $("conn-status").innerHTML = html; }
+$("conn-save").addEventListener("click", async () => {
+  const conn = {
+    owner: $("conn-owner").value.trim().replace(/^@/, "").replace(/\/+$/, ""),
+    repo: cleanRepo($("conn-repo").value),
+    token: $("conn-token").value.trim()
+  };
+  if (!conn.owner || !conn.repo || !conn.token) {
+    setConnStatus('<div class="notice danger">ユーザー名・リポジトリ名・アクセストークンをすべて入れてください。</div>');
+    return;
+  }
+  const b = $("conn-save");
+  b.disabled = true;
+  setConnStatus('<div class="notice info">確かめています…</div>');
+  const before = state.conn;
+  state.conn = conn;
+  state.defaultBranch = null;
+  try {
+    await readSettings();   // まず settings.json を読めるか確かめる
+    storageSet(LS.owner, conn.owner);
+    storageSet(LS.repo, conn.repo);
+    storageSet(LS.token, conn.token);
+    setConnStatus('<div class="notice info">接続しました（' + esc(conn.owner) + "/" + esc(conn.repo) + "）</div>");
+    toast("接続しました");
+    settingsFilled = false;
+    await loadAll();
+  } catch (e) {
+    state.conn = before;
+    const code = e.status ? "エラー " + e.status + "：" : "";
+    setConnStatus('<div class="notice danger">接続できませんでした。' + esc(code + e.message) + "</div>");
+  }
+  b.disabled = false;
+});
+$("conn-clear").addEventListener("click", async () => {
+  if (!(await ask("この端末から、接続の情報（トークンなど）を消しますか？"))) return;
+  Object.values(LS).forEach(storageDel);
+  ["conn-owner", "conn-repo", "conn-token"].forEach((id) => { $(id).value = ""; });
+  state.conn = null;
+  state.settings = null;
+  state.queue = []; state.history = []; state.neta = { unused: [], used: [] }; state.runs = [];
+  state.defaultBranch = null;
+  settingsFilled = false;
+  setConnStatus('<div class="notice info">この端末から消しました。</div>');
+  renderAll();
+});
+
+// ===== はじめに =====
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadAll(); });
+
+(function start() {
+  const owner = storageGet(LS.owner), repo = storageGet(LS.repo), token = storageGet(LS.token);
+  $("conn-owner").value = owner;
+  $("conn-repo").value = repo;
+  $("conn-token").value = token;
+  if (owner && repo && token) {
+    state.conn = { owner, repo, token };
+    loadAll();
+  } else {
+    renderAll();
+    showView("view-settings");
+  }
+})();
+</script>
+</body>
+</html>
