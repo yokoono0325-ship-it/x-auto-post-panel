@@ -35,7 +35,7 @@ h2 .count { color: var(--sub); font-weight: normal; font-size: 14px; margin-left
 p { margin: 6px 0; }
 .sub { color: var(--sub); font-size: 14px; }
 .view[hidden] { display: none; }
-.card, .post-card, .history-card {
+.card, .post-card, .history-card, .unposted-card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 14px; margin: 10px 0; overflow-wrap: anywhere;
 }
@@ -52,7 +52,7 @@ p { margin: 6px 0; }
 .meta { font-size: 13px; color: var(--sub); margin-top: 6px; }
 .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .actions button { flex: 1 1 0; min-width: 0; }
-button, .btn {
+button {
   font: inherit; font-size: 15px; font-weight: 600; min-height: 46px; padding: 10px 14px;
   border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text);
   cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
@@ -69,37 +69,48 @@ input, textarea, select {
 }
 textarea { resize: vertical; min-height: 96px; }
 label { display: block; font-weight: 600; font-size: 14px; margin: 14px 0 6px; }
-.hint { font-weight: normal; color: var(--sub); font-size: 13px; }
+.hint { color: var(--sub); font-size: 13px; margin: -2px 0 6px; }
 .counter { text-align: right; font-size: 12px; color: var(--sub); margin-top: 2px; }
 .counter.over { color: var(--danger); font-weight: 700; }
-.edit-box { margin-top: 4px; }
-.edit-box .edit-part { margin-top: 6px; }
+.edit-part { margin-top: 6px; }
 .seg { display: flex; gap: 8px; }
 .seg button { flex: 1; }
 .seg button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
 .row { display: flex; gap: 8px; }
 .row > * { flex: 1; min-width: 0; }
 .times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.times[hidden], .time-wrap[hidden] { display: none; }
+.time-wrap[hidden] { display: none; }
 .time-wrap span { font-size: 12px; color: var(--sub); }
 .empty { color: var(--sub); text-align: center; padding: 18px 8px; border: 1px dashed var(--line); border-radius: var(--radius); margin: 10px 0; }
 .notice { border-radius: var(--radius); padding: 12px 14px; margin: 10px 0; font-size: 14px; }
 .notice.info { background: var(--soft); }
-.notice.warn { background: var(--warn-soft); color: var(--warn); }
 .notice.danger { background: var(--danger-soft); color: var(--danger); }
+.notice:empty { display: none; }
 .errors { margin: 10px 0; padding-left: 20px; color: var(--danger); font-size: 14px; }
 .errors:empty { display: none; }
-#paused-banner {
-  position: sticky; top: 0; z-index: 5; background: var(--danger); color: #fff; text-align: center;
-  font-weight: 700; padding: 10px 16px; font-size: 15px;
-}
+#paused-banner { background: var(--danger); color: #fff; border-radius: var(--radius); padding: 12px 14px; margin: 10px 0; font-weight: 700; }
 #paused-banner[hidden] { display: none; }
+#paused-banner button { margin-top: 8px; width: 100%; background: #fff; color: var(--danger); border-color: #fff; }
 .list-plain { list-style: none; margin: 0; padding: 0; }
 .list-plain li { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; overflow-wrap: anywhere; }
+details > summary { cursor: pointer; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details.history-card > summary, details.unposted-card > summary { display: block; }
+details.history-card > summary::after, details.unposted-card > summary::after { content: "▼"; display: block; font-size: 12px; color: var(--sub); margin-top: 6px; text-align: center; }
+details[open].history-card > summary::after, details[open].unposted-card > summary::after { content: "▲"; }
+.preview { white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.preview.one { -webkit-line-clamp: 1; }
+.detail-body { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.post-link { display: inline-block; margin-top: 6px; font-size: 14px; font-weight: 600; }
+#runs-section { margin-top: 22px; }
+#runs-section > summary { font-size: 17px; font-weight: 700; padding: 8px 0; }
+#runs-section > summary::before { content: "▶ "; color: var(--sub); font-size: 13px; }
+#runs-section[open] > summary::before { content: "▼ "; }
 .run { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .run a { color: var(--text); text-decoration: none; min-width: 0; }
 .run .run-name { display: block; font-size: 14px; font-weight: 600; }
 .run .run-time { font-size: 12px; color: var(--sub); }
+.reload-btn { margin-top: 16px; }
 a { color: var(--primary); }
 nav.tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex;
@@ -127,24 +138,24 @@ nav.tabs button[aria-selected="true"] { color: var(--primary); }
 </style>
 </head>
 <body>
-<div id="paused-banner" hidden>⏸ 緊急停止中です（下書き作成も投稿もしません）</div>
-
 <main>
   <!-- ホーム -->
   <section id="view-home" class="view">
     <h1>X自動投稿</h1>
-    <div id="home-notice"></div>
+    <div id="home-notice" class="notice info"></div>
+    <div id="paused-banner" hidden>
+      緊急停止中です。下書きづくりも投稿も止まっています。
+      <button id="resume-btn" type="button">再開する</button>
+    </div>
 
-    <div class="card">
-      <div class="sub" style="margin-bottom:6px">投稿のしかた</div>
-      <div class="seg">
-        <button id="mode-approval" type="button" aria-pressed="true">承認してから投稿</button>
-        <button id="mode-auto" type="button" aria-pressed="false">完全自動</button>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <button id="plan-now" type="button">今すぐ下書き</button>
-        <button id="pause-btn" type="button" class="danger">緊急停止</button>
-      </div>
+    <h2>投稿のしかた</h2>
+    <div class="seg">
+      <button id="mode-approval" type="button" aria-pressed="true">承認してから投稿</button>
+      <button id="mode-auto" type="button" aria-pressed="false">完全自動</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="plan-now" type="button">今すぐ下書き</button>
+      <button id="pause-btn" type="button" class="danger">緊急停止</button>
     </div>
 
     <h2>承認待ち<span class="count" id="pending-count"></span></h2>
@@ -153,73 +164,81 @@ nav.tabs button[aria-selected="true"] { color: var(--primary); }
     <h2>予約済み<span class="count" id="scheduled-count"></span></h2>
     <div id="scheduled-list"></div>
 
-    <h2>最近の自動実行</h2>
-    <ul id="runs-list" class="list-plain"></ul>
-    <button id="reload-btn" type="button" class="wide" style="margin-top:8px">最新の内容を読み直す</button>
+    <button type="button" class="reload-btn wide">最新の内容を読み直す</button>
   </section>
 
   <!-- ネタ帳 -->
   <section id="view-neta" class="view" hidden>
     <h1>ネタ帳</h1>
-    <p class="sub">思いついたことをメモしておくと、AIがそれをもとに投稿を書きます。1行に1つずつ書けます。</p>
-    <textarea id="neta-input" placeholder="例：朝の散歩で気づいたこと"></textarea>
+    <p class="sub">投稿したいことを一言で。翌朝、これをもとに AI が下書きを作ります。</p>
+    <textarea id="neta-input" aria-label="ネタ"></textarea>
     <button id="neta-submit" type="button" class="primary wide" style="margin-top:8px">ネタ帳に追加</button>
 
-    <h2>未使用<span class="count" id="neta-pending-count"></span></h2>
+    <h2>これから使うネタ</h2>
+    <p class="sub">上から順に使います</p>
     <ul id="neta-pending-list" class="list-plain"></ul>
 
-    <h2>使用済み<span class="count" id="neta-used-count"></span></h2>
+    <h2>使用済み</h2>
     <ul id="neta-used-list" class="list-plain"></ul>
   </section>
 
   <!-- 履歴 -->
   <section id="view-history" class="view" hidden>
-    <h1>投稿履歴</h1>
+    <h2>投稿履歴</h2>
     <div id="history-list"></div>
+
     <h2>投稿しなかったもの</h2>
     <p class="sub">失敗・期限切れ・似ていたので見送ったもの（14日分）</p>
-    <div id="trouble-list"></div>
+    <div id="unposted-list"></div>
+
+    <details id="runs-section">
+      <summary>最近の自動実行</summary>
+      <ul id="runs-list" class="list-plain"></ul>
+    </details>
+
+    <button type="button" class="reload-btn wide">最新の内容を読み直す</button>
   </section>
 
   <!-- 設定 -->
   <section id="view-settings" class="view" hidden>
-    <h1>設定</h1>
-
     <h2>GitHub との接続</h2>
     <div class="card">
-      <p class="sub">この端末のブラウザにだけ保存します。リポジトリには書きません。</p>
       <label for="conn-owner">GitHub のユーザー名</label>
-      <input id="conn-owner" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：yamada">
+      <input id="conn-owner" autocomplete="off" autocapitalize="off" spellcheck="false">
       <label for="conn-repo">リポジトリ名</label>
-      <input id="conn-repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：x-auto-post">
-      <label for="conn-token">アクセストークン <span class="hint">（Contents と Actions を Read and write）</span></label>
-      <input id="conn-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_...">
-      <div id="conn-status"></div>
+      <input id="conn-repo" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <label for="conn-token">アクセストークン</label>
+      <p class="hint">Contents と Actions を Read and write にしたトークン。この端末のブラウザにだけ保存します。</p>
+      <input id="conn-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div id="conn-status" class="notice danger"></div>
       <div class="row" style="margin-top:12px">
         <button id="conn-save" type="button" class="primary">接続</button>
-        <button id="conn-clear" type="button">この端末から消す</button>
+        <button id="conn-clear" type="button">接続を解除</button>
       </div>
     </div>
 
-    <h2>アカウントと発信内容</h2>
+    <h2>発信の設定</h2>
     <div class="card">
-      <label for="set-handle">X のアカウント名 <span class="hint">（@なし・英数字と _ で15文字まで）</span></label>
-      <input id="set-handle" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：yamada_taro">
+      <label for="set-handle">X のアカウント名</label>
+      <p class="hint">@のあとの英数字</p>
+      <input id="set-handle" autocomplete="off" autocapitalize="off" spellcheck="false">
       <label for="set-persona">あなたの立場</label>
-      <input id="set-persona" placeholder="例：会社員で、週末に家庭菜園をしている">
+      <input id="set-persona">
       <label for="set-audience">届けたい相手</label>
-      <input id="set-audience" placeholder="例：家庭菜園を始めたい人">
-      <label for="set-themes">発信テーマ <span class="hint">（1行に1つ）</span></label>
-      <textarea id="set-themes" placeholder="例：&#10;家庭菜園&#10;季節の野菜"></textarea>
+      <input id="set-audience">
+      <label for="set-themes">発信テーマ（1行に1つ）</label>
+      <textarea id="set-themes"></textarea>
     </div>
 
     <h2>投稿の数と時間</h2>
     <div class="card">
       <label for="set-posts-per-day">1日の投稿の数</label>
       <select id="set-posts-per-day"></select>
-      <label>投稿の時間 <span class="hint">（6:30〜23:30・30分以上あける）</span></label>
+      <label>投稿の時間</label>
+      <p class="hint">ちょうどの時刻から選びます。選んだ時刻の5分ほどあとに投稿されます（GitHub が混んでいると遅れることがあります）。</p>
       <div class="times" id="times-box"></div>
-      <label for="set-max-per-day">1日の投稿の上限 <span class="hint">（安全装置・1〜50）</span></label>
+      <label for="set-max-per-day">1日の投稿の上限</label>
+      <p class="hint">安全装置。投稿がこの数に達したら、その日はもう投稿しません。</p>
       <input id="set-max-per-day" type="number" inputmode="numeric" min="1" max="50">
       <label for="set-long">投稿の長さ</label>
       <select id="set-long">
@@ -256,20 +275,28 @@ nav.tabs button[aria-selected="true"] { color: var(--primary); }
 
 // ===== 決まった値 =====
 const API = "https://api.github.com";
-const DEFAULT_TIMES = ["07:30", "09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00"];
+// 投稿の時間の選択肢：07:00〜23:00 のちょうどの時刻17個
+const HOURS = Array.from({ length: 17 }, (_, i) => String(7 + i).padStart(2, "0") + ":00");
+// 足りない欄に入れる既定の並び
+const DEFAULT_TIMES = ["07:00", "12:00", "19:00", "09:00", "21:00", "08:00", "15:00", "17:00", "10:00", "20:00"];
 const ACTIVE = ["pending", "approved", "ready"];
-const STATUS_LABEL = {
-  pending: ["承認待ち", "warn"], approved: ["承認ずみ", "ok"], ready: ["完全自動で予約", "ok"],
-  posted: ["投稿ずみ", "ok"], partial: ["途中まで投稿", "danger"], failed: ["失敗", "danger"],
-  rejected: ["却下", "gray"], cancelled: ["取り消し", "gray"], expired: ["期限切れ", "gray"],
-  skipped: ["似ていたので見送り", "gray"]
-};
+const CARD_STATUS = { pending: ["承認待ち", "warn"], approved: ["承認ずみ", "ok"], ready: ["完全自動", "ok"] };
+const UNPOSTED_STATUS = { failed: ["失敗", "danger"], expired: ["期限切れ", "gray"], skipped: ["見送り", "gray"] };
 const LS = { owner: "xpost.owner", repo: "xpost.repo", token: "xpost.token" };
+const MSG = {
+  connected: "接続しました",
+  disconnected: "接続を解除しました",
+  saved: "設定を保存しました",
+  neta: "ネタを追加しました。1分ほどでネタ帳に入ります",
+  plan: "下書きの作成を始めました。1〜2分で届きます",
+  later: "。1分ほどで反映されます",
+  notConnected: "まだ GitHub と接続していません。「設定」の「GitHub との接続」から接続してください"
+};
 
 // ===== 状態 =====
 const state = {
   conn: null, settings: null, queue: [], history: [], neta: { unused: [], used: [] },
-  runs: [], defaultBranch: null, editing: {}, busy: {}, loadError: ""
+  runs: [], defaultBranch: null, editing: {}, busy: {}
 };
 const $ = (id) => document.getElementById(id);
 
@@ -277,12 +304,16 @@ const $ = (id) => document.getElementById(id);
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
-const jstFormat = new Intl.DateTimeFormat("ja-JP", {
-  timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit"
+const jstParts = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23"
 });
+// 日本時間で「10/18(日) 07:00」の形にする
 function jst(iso) {
   const d = new Date(iso);
-  return isNaN(d) ? "" : jstFormat.format(d);
+  if (isNaN(d)) return "";
+  const p = {};
+  for (const x of jstParts.formatToParts(d)) p[x.type] = x.value;
+  return p.month + "/" + p.day + "(" + p.weekday + ") " + p.hour + ":" + p.minute;
 }
 function storageGet(key) { try { return localStorage.getItem(key) || ""; } catch (e) { return ""; } }
 function storageSet(key, v) { try { localStorage.setItem(key, v); } catch (e) { /* 保存できない環境 */ } }
@@ -315,7 +346,7 @@ function weight(ch) {
   return (c <= 4351 || (c >= 8192 && c <= 8205) || (c >= 8208 && c <= 8223) || (c >= 8242 && c <= 8247)) ? 1 : 2;
 }
 function countLength(text) {
-  const t = text.normalize("NFC");
+  const t = String(text).normalize("NFC");
   let total = 0, pos = 0, m;
   URL_RE.lastIndex = 0;
   while ((m = URL_RE.exec(t)) !== null) {
@@ -327,6 +358,9 @@ function countLength(text) {
   return total;
 }
 function hasUrl(text) { URL_RE.lastIndex = 0; return URL_RE.test(text); }
+function maxLength() { return (state.settings && Number(state.settings.max_length)) || 280; }
+function maxParts() { return (state.settings && Number(state.settings.thread_max_parts)) || 5; }
+function lengthText(text) { return countLength(text) + "／" + maxLength(); }
 
 // ===== GitHub API =====
 class ApiError extends Error {
@@ -348,7 +382,7 @@ function repoUrl(path) {
   return url;
 }
 async function api(method, path, body, accept) {
-  if (!state.conn) throw new ApiError(0, "まだ接続していません");
+  if (!state.conn) throw new ApiError(0, MSG.notConnected);
   let res;
   try {
     res = await fetch(repoUrl(path), {
@@ -450,8 +484,9 @@ function parseNeta(text) {
 
 let loading = false;
 async function loadAll() {
-  if (!state.conn || loading) return;
+  if (!state.conn || loading) return false;
   loading = true;
+  let ok = true;
   try {
     const [settings, queue, history, netaText, runs] = await Promise.all([
       readSettings(),
@@ -465,13 +500,14 @@ async function loadAll() {
     state.history = history;
     state.neta = parseNeta(netaText);
     state.runs = runs;
-    state.loadError = "";
   } catch (e) {
-    state.loadError = e.message;
+    ok = false;
+    toast(e.message, true);
   } finally {
     loading = false;
   }
   renderAll();
+  return ok;
 }
 let reloadTimers = [];
 function reloadSoon() {
@@ -480,18 +516,18 @@ function reloadSoon() {
 }
 
 // ===== 画面を描く =====
-function statusBadge(status) {
-  const [label, kind] = STATUS_LABEL[status] || [status, "gray"];
-  return '<span class="badge ' + kind + '">' + esc(label) + "</span>";
-}
-function partsHtml(parts) {
+function badge(label, kind) { return '<span class="badge ' + kind + '">' + esc(label) + "</span>"; }
+function partsHtml(parts, withCount) {
   const many = parts.length > 1;
   return parts.map((p, i) =>
-    '<div class="part">' + (many ? '<span class="part-no">' + (i + 1) + "/" + parts.length + "</span>\n" : "") + esc(p) + "</div>"
+    '<div class="part">' + (many ? '<span class="part-no">' + (i + 1) + "/" + parts.length + "</span>\n" : "") + esc(p) +
+    (withCount ? '<div class="counter">' + esc(lengthText(p)) + "</div>" : "") + "</div>"
   ).join("");
 }
-function maxLength() { return (state.settings && Number(state.settings.max_length)) || 280; }
-function maxParts() { return (state.settings && Number(state.settings.thread_max_parts)) || 5; }
+function sourceBadge(item, short) {
+  if (item.source === "neta") return badge("ネタ帳から", "gray");
+  return badge(short ? "テーマから" : "テーマ：" + (item.theme || ""), "gray");
+}
 
 function isBusy(item) {
   const b = state.busy[item.id];
@@ -504,124 +540,128 @@ function postCard(item) {
   const pending = item.status === "pending";
   const editing = state.editing[item.id];
   const busy = isBusy(item);
+  const [label, kind] = CARD_STATUS[item.status] || [item.status, "gray"];
   let html = '<div class="post-card" data-id="' + esc(item.id) + '">' +
-    '<div class="card-head"><span class="when">' + esc(jst(item.scheduled_at)) + "</span>" + statusBadge(item.status) +
-    '<span class="badge gray">' + (item.source === "neta" ? "ネタ帳から" : "テーマ：" + esc(item.theme || "")) + "</span></div>";
+    '<div class="card-head"><span class="when">' + esc(jst(item.scheduled_at)) + "</span>" + badge(label, kind) + sourceBadge(item, false) + "</div>";
   if (editing) {
-    html += '<div class="edit-box">' + editing.map((p, i) =>
+    html += editing.map((p, i) =>
       '<textarea class="edit-part" data-index="' + i + '" aria-label="' + (i + 1) + 'つ目の投稿">' + esc(p) + "</textarea>" +
       '<div class="counter" data-counter="' + i + '"></div>'
-    ).join("") + "</div>" +
+    ).join("") +
       '<div class="actions">' +
-      (editing.length < maxParts() ? '<button type="button" data-action="add-part">＋ 続きを足す</button>' : "") +
-      '<button type="button" data-action="cancel-edit">修正をやめる</button></div>' +
-      '<div class="actions"><button type="button" class="primary" data-action="save-edit">修正して承認</button></div>';
+      (editing.length < maxParts() ? '<button type="button" data-action="add-part">続きを足す</button>' : "") +
+      '<button type="button" class="primary" data-action="save-edit">修正して承認</button>' +
+      '<button type="button" data-action="cancel-edit">やめる</button></div>';
   } else {
-    html += partsHtml(item.parts || []);
-    if (item.neta) html += '<div class="meta">ネタ：' + esc(item.neta) + "</div>";
+    const dis = busy ? " disabled" : "";
+    html += partsHtml(item.parts || [], false);
+    if (item.source === "neta" && item.neta) html += '<div class="meta">ネタ：' + esc(item.neta) + "</div>";
     html += '<div class="actions">' + (pending
-      ? '<button type="button" class="ok" data-action="approve"' + (busy ? " disabled" : "") + '>承認</button>' +
-        '<button type="button" data-action="edit"' + (busy ? " disabled" : "") + '>修正</button>' +
-        '<button type="button" class="danger" data-action="reject"' + (busy ? " disabled" : "") + '>却下</button>'
-      : '<button type="button" data-action="edit"' + (busy ? " disabled" : "") + '>修正</button>' +
-        '<button type="button" class="danger" data-action="cancel"' + (busy ? " disabled" : "") + '>取り消し</button>') + "</div>";
-    if (busy) html += '<div class="busy-note">反映中です（1分ほどかかります）…</div>';
+      ? '<button type="button" class="ok" data-action="approve"' + dis + ">承認</button>" +
+        '<button type="button" data-action="edit"' + dis + ">修正</button>" +
+        '<button type="button" class="danger" data-action="reject"' + dis + ">却下</button>"
+      : '<button type="button" data-action="edit"' + dis + ">修正</button>" +
+        '<button type="button" class="danger" data-action="cancel"' + dis + ">取り消し</button>") + "</div>";
+    if (busy) html += '<div class="busy-note">反映中…</div>';
   }
   return html + "</div>";
 }
 
 function renderHome(force) {
-  const s = state.settings;
-  const notice = [];
-  if (!state.conn) notice.push('<div class="notice info">はじめに「設定」タブで GitHub と接続してください。</div>');
-  if (state.loadError) notice.push('<div class="notice danger">読み込めませんでした：' + esc(state.loadError) + "</div>");
-  if (s && !(String(s.handle || "").trim() && (s.themes || []).length)) {
-    notice.push('<div class="notice warn">まだ初期設定がすんでいません。「設定」タブで、アカウント名とテーマを入れてください。</div>');
-  }
-  $("home-notice").innerHTML = notice.join("");
-
+  $("home-notice").textContent = state.conn ? "" : MSG.notConnected;
   const items = state.queue.filter((q) => ACTIVE.includes(q.status))
     .sort((a, b) => String(a.scheduled_at).localeCompare(String(b.scheduled_at)));
   const pending = items.filter((q) => q.status === "pending");
   const scheduled = items.filter((q) => q.status !== "pending");
-  $("pending-count").textContent = pending.length ? pending.length + "件" : "";
-  $("scheduled-count").textContent = scheduled.length ? scheduled.length + "件" : "";
+  $("pending-count").textContent = pending.length + "件";
+  $("scheduled-count").textContent = scheduled.length + "件";
   const typing = document.activeElement && document.activeElement.classList.contains("edit-part");
-  if (force || !typing) renderLists(pending, scheduled);
-  renderOps(s);
-}
-
-function renderLists(pending, scheduled) {
-  $("pending-list").innerHTML = pending.length ? pending.map(postCard).join("") : '<div class="empty">承認待ちの下書きはありません</div>';
-  $("scheduled-list").innerHTML = scheduled.length ? scheduled.map(postCard).join("") : '<div class="empty">予約済みの投稿はありません</div>';
-  document.querySelectorAll(".edit-part").forEach(updateCounter);
-}
-
-function renderOps(s) {
-  const auto = s && s.mode === "auto";
+  if (force || !typing) {
+    $("pending-list").innerHTML = pending.length ? pending.map(postCard).join("") : '<div class="empty">承認待ちの下書きはありません</div>';
+    $("scheduled-list").innerHTML = scheduled.length ? scheduled.map(postCard).join("") : '<div class="empty">予約済みの投稿はありません</div>';
+    document.querySelectorAll(".edit-part").forEach(updateCounter);
+  }
+  const s = state.settings;
+  const auto = !!(s && s.mode === "auto");
   $("mode-approval").setAttribute("aria-pressed", String(!auto));
-  $("mode-auto").setAttribute("aria-pressed", String(!!auto));
+  $("mode-auto").setAttribute("aria-pressed", String(auto));
   const paused = !!(s && s.paused);
-  $("pause-btn").textContent = paused ? "再開" : "緊急停止";
+  $("pause-btn").textContent = paused ? "再開する" : "緊急停止";
   $("pause-btn").classList.toggle("danger", !paused);
   $("pause-btn").classList.toggle("ok", paused);
   $("paused-banner").hidden = !paused;
-
-  $("runs-list").innerHTML = state.runs.length ? state.runs.map((r) => {
-    let label = ["実行中", "warn"];
-    if (r.status === "completed") {
-      label = r.conclusion === "success" ? ["成功", "ok"] : r.conclusion === "cancelled" || r.conclusion === "skipped" ? ["中止", "gray"] : ["失敗", "danger"];
-    }
-    return '<li class="run"><a href="' + esc(r.html_url) + '" target="_blank" rel="noopener"><span class="run-name">' + esc(r.name) +
-      '</span><span class="run-time">' + esc(jst(r.created_at)) + '</span></a><span class="badge ' + label[1] + '">' + label[0] + "</span></li>";
-  }).join("") : '<li class="sub">まだありません</li>';
 }
 
 function renderNeta() {
   const { unused, used } = state.neta;
-  $("neta-pending-count").textContent = unused.length ? unused.length + "件" : "";
-  $("neta-used-count").textContent = used.length ? used.length + "件" : "";
-  $("neta-pending-list").innerHTML = unused.length ? unused.map((n) => "<li>" + esc(n) + "</li>").join("") : '<li class="sub">まだありません</li>';
-  $("neta-used-list").innerHTML = used.length ? used.slice(0, 50).map((n) => "<li>" + esc(n) + "</li>").join("") : '<li class="sub">まだありません</li>';
+  $("neta-pending-list").innerHTML = unused.map((n) => "<li>" + esc(n) + "</li>").join("");
+  $("neta-used-list").innerHTML = used.slice(0, 50).map((n) => "<li>" + esc(n) + "</li>").join("");
 }
 
 function tweetLink(id) {
-  const handle = state.settings && state.settings.handle;
-  if (!id || String(id).startsWith("dry-run")) return "";
-  return "https://x.com/" + encodeURIComponent(handle || "i") + "/status/" + encodeURIComponent(id);
+  const handle = (state.settings && state.settings.handle) || "i";
+  return "https://x.com/" + encodeURIComponent(handle) + "/status/" + encodeURIComponent(id);
 }
 function renderHistory() {
+  const statusById = {};
+  state.queue.forEach((q) => { statusById[q.id] = q.status; });
   const list = state.history.slice().sort((a, b) => String(b.posted_at).localeCompare(String(a.posted_at)));
   $("history-list").innerHTML = list.length ? list.map((h) => {
     const ids = h.tweet_ids || [];
-    const link = tweetLink(ids[0]);
-    const dry = ids.length && String(ids[0]).startsWith("dry-run");
-    return '<div class="history-card"><div class="card-head"><span class="when">' + esc(jst(h.posted_at)) + "</span>" +
-      (dry ? '<span class="badge warn">試運転</span>' : "") +
-      '<span class="badge gray">' + (h.source === "neta" ? "ネタ帳から" : "テーマから") + "</span></div>" +
-      partsHtml(h.parts || []) + (link ? '<div class="meta"><a href="' + esc(link) + '" target="_blank" rel="noopener">X で見る</a></div>' : "") + "</div>";
+    const parts = h.parts || [];
+    const dry = ids.length > 0 && String(ids[0]).startsWith("dry-run");
+    const link = ids.length && !dry
+      ? '<a class="post-link" href="' + esc(tweetLink(ids[0])) + '" target="_blank" rel="noopener">Xで見る</a>' : "";
+    return '<details class="history-card"><summary>' +
+      '<div class="card-head"><span class="when">' + esc(jst(h.posted_at)) + "</span>" + sourceBadge(h, true) +
+      (dry ? badge("試運転", "warn") : "") + (statusById[h.id] === "partial" ? badge("途中まで", "danger") : "") + "</div>" +
+      '<div class="preview">' + esc(parts.join("\n")) + "</div>" + link + "</summary>" +
+      '<div class="detail-body">' + partsHtml(parts, true) + "</div></details>";
   }).join("") : '<div class="empty">まだ投稿はありません</div>';
 
-  const trouble = state.queue.filter((q) => ["failed", "partial", "expired", "skipped"].includes(q.status))
+  const unposted = state.queue.filter((q) => UNPOSTED_STATUS[q.status])
     .sort((a, b) => String(b.scheduled_at).localeCompare(String(a.scheduled_at)));
-  $("trouble-list").innerHTML = trouble.length ? trouble.map((q) =>
-    '<div class="history-card"><div class="card-head"><span class="when">' + esc(jst(q.scheduled_at)) + "</span>" + statusBadge(q.status) + "</div>" +
-    partsHtml(q.parts || []) + (q.error ? '<div class="meta">' + esc(q.error) + "</div>" : "") + "</div>"
-  ).join("") : '<div class="empty">ありません</div>';
+  $("unposted-list").innerHTML = unposted.length ? unposted.map((q) => {
+    const [label, kind] = UNPOSTED_STATUS[q.status];
+    const parts = q.parts || [];
+    return '<details class="unposted-card"><summary>' +
+      '<div class="card-head"><span class="when">' + esc(jst(q.scheduled_at)) + "</span>" + badge(label, kind) + "</div>" +
+      '<div class="preview one">' + esc(parts.join("\n")) + "</div></summary>" +
+      '<div class="detail-body">' + partsHtml(parts, false) +
+      (q.status === "failed" && q.error ? '<div class="meta">' + esc(q.error) + "</div>" : "") + "</div></details>";
+  }).join("") : '<div class="empty">ありません</div>';
+
+  $("runs-list").innerHTML = state.runs.map((r) => {
+    let label = ["実行中", "warn"];
+    if (r.status === "completed") {
+      label = r.conclusion === "success" ? ["成功", "ok"]
+        : (r.conclusion === "cancelled" || r.conclusion === "skipped") ? ["取り消し", "gray"] : ["失敗", "danger"];
+    }
+    return '<li class="run"><a href="' + esc(r.html_url) + '" target="_blank" rel="noopener"><span class="run-name">' + esc(r.name) +
+      '</span><span class="run-time">' + esc(jst(r.created_at)) + "</span></a>" + badge(label[0], label[1]) + "</li>";
+  }).join("");
 }
 
-// 投稿時間の欄：保存ずみの時刻を使い、足りない分は初期値で補う（同じ時刻は飛ばす）
-function fillTimes(saved) {
-  const times = (Array.isArray(saved) ? saved : []).filter((t) => /^\d{1,2}:\d{2}$/.test(t)).map((t) => t.padStart(5, "0")).slice(0, 10);
-  for (const t of DEFAULT_TIMES) {
-    if (times.length >= 10) break;
-    if (!times.includes(t)) times.push(t);
-  }
-  return times;
+// ----- 設定の欄 -----
+function timeValues(n) {
+  const out = [];
+  for (let i = 1; i <= n; i++) out.push($("set-time-" + i).value);
+  return out;
 }
+// from 番目から to 番目の欄に、既定の並びからまだ選ばれていない時刻を前から入れる
+function fillTimeFields(from, to) {
+  for (let i = from; i <= to; i++) {
+    const chosen = timeValues(i - 1);
+    const next = DEFAULT_TIMES.find((t) => !chosen.includes(t)) || HOURS.find((t) => !chosen.includes(t));
+    $("set-time-" + i).value = next;
+  }
+}
+let shownTimes = 1;
 function showTimeFields() {
   const n = Number($("set-posts-per-day").value) || 1;
+  if (n > shownTimes) fillTimeFields(shownTimes + 1, n);
   for (let i = 1; i <= 10; i++) $("time-wrap-" + i).hidden = i > n;
+  shownTimes = n;
 }
 let settingsFilled = false;
 function renderSettings(force) {
@@ -632,15 +672,21 @@ function renderSettings(force) {
   $("set-persona").value = s.persona || "";
   $("set-audience").value = s.audience || "";
   $("set-themes").value = (s.themes || []).join("\n");
-  $("set-posts-per-day").value = String(Math.min(Math.max(Number(s.posts_per_day) || 1, 1), 10));
-  fillTimes(s.post_times).forEach((t, i) => { $("set-time-" + (i + 1)).value = t; });
+  const n = Math.min(Math.max(Number(s.posts_per_day) || 1, 1), 10);
+  $("set-posts-per-day").value = String(n);
+  // 保存ずみの時刻を入れ、足りない欄は既定の並びで補う
+  const saved = (Array.isArray(s.post_times) ? s.post_times : []).map((t) => String(t).padStart(5, "0"))
+    .filter((t, i, a) => HOURS.includes(t) && a.indexOf(t) === i).slice(0, n);
+  saved.forEach((t, i) => { $("set-time-" + (i + 1)).value = t; });
+  fillTimeFields(saved.length + 1, n);
+  shownTimes = n;
+  showTimeFields();
   $("set-max-per-day").value = s.max_posts_per_day == null ? 10 : s.max_posts_per_day;
   $("set-long").value = Number(s.max_length) > 280 ? "2000" : "280";
-  showTimeFields();
 }
 
 function renderAll() {
-  renderHome();
+  renderHome(false);
   renderNeta();
   renderHistory();
   renderSettings(false);
@@ -657,19 +703,17 @@ document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("
 // ===== 下書きカードの操作 =====
 function findItem(id) { return state.queue.find((q) => q.id === id); }
 function updateCounter(ta) {
-  const n = countLength(ta.value);
   const c = ta.parentElement.querySelector('[data-counter="' + ta.dataset.index + '"]');
   if (!c) return;
-  const max = maxLength();
-  c.textContent = n + " / " + max + (hasUrl(ta.value) ? "（URLは入れられません）" : "");
-  c.classList.toggle("over", n > max || hasUrl(ta.value));
+  c.textContent = lengthText(ta.value);
+  c.classList.toggle("over", countLength(ta.value) > maxLength() || hasUrl(ta.value));
 }
 function checkParts(parts) {
   if (!parts.length) return "本文が空です";
   if (parts.length > maxParts()) return "スレッドは" + maxParts() + "つまでです";
   for (let i = 0; i < parts.length; i++) {
     if (hasUrl(parts[i])) return (i + 1) + "つ目の投稿にURLが入っています。URLは入れられません";
-    if (countLength(parts[i]) > maxLength()) return (i + 1) + "つ目の投稿が長すぎます（" + countLength(parts[i]) + " / " + maxLength() + "）";
+    if (countLength(parts[i]) > maxLength()) return (i + 1) + "つ目の投稿が長すぎます（" + lengthText(parts[i]) + "）";
   }
   return null;
 }
@@ -678,7 +722,7 @@ async function sendControl(item, action, text, doneMsg) {
   try {
     await control(action, item.id, text);
     state.busy[item.id] = { status: item.status, at: Date.now() };
-    toast(doneMsg + "（反映まで1分ほどかかります）");
+    toast(doneMsg + MSG.later);
     reloadSoon();
   } catch (e) {
     toast(e.message, true);
@@ -706,10 +750,10 @@ document.addEventListener("click", async (ev) => {
     btn.disabled = true;
     await sendControl(item, "approve", "", "承認しました");
   } else if (action === "reject") {
-    if (!(await ask("この下書きを却下しますか？"))) return;
+    btn.disabled = true;
     await sendControl(item, "reject", "", "却下しました");
   } else if (action === "cancel") {
-    if (!(await ask("この予約を取り消しますか？"))) return;
+    btn.disabled = true;
     await sendControl(item, "cancel", "", "取り消しました");
   } else if (action === "edit") {
     state.editing[item.id] = (item.parts || [""]).slice();
@@ -727,65 +771,79 @@ document.addEventListener("click", async (ev) => {
     const problem = checkParts(parts);
     if (problem) { toast(problem, true); return; }
     delete state.editing[item.id];
-    await sendControl(item, "edit", parts.join("\n---\n"), "修正して承認しました");
+    await sendControl(item, "edit", parts.join("\n---\n"), "修正しました");
   }
 });
 
+// 履歴の「Xで見る」：押しても開け閉めせず、新しいタブで開く
+document.addEventListener("click", (ev) => {
+  const link = ev.target.closest("a.post-link");
+  if (!link) return;
+  ev.preventDefault();
+  window.open(link.href, "_blank", "noopener");
+});
+
 // ===== 運用（モード・緊急停止・今すぐ下書き） =====
-async function changeSettings(change, doneMsg) {
+async function changeSettings(change) {
+  if (!state.conn) { toast(MSG.notConnected, true); return; }
   try {
     await updateSettings(change);
-    toast(doneMsg);
-    renderHome();
+    renderHome(false);
   } catch (e) {
     toast(e.message, true);
   }
 }
+async function resume() {
+  if (!state.settings || !state.settings.paused) return;
+  await changeSettings((s) => ({ ...s, paused: false }));
+}
 $("mode-approval").addEventListener("click", async () => {
   if (!state.settings || state.settings.mode !== "auto") return;
-  await changeSettings((s) => ({ ...s, mode: "approval" }), "承認してから投稿するモードにしました");
+  await changeSettings((s) => ({ ...s, mode: "approval" }));
 });
 $("mode-auto").addEventListener("click", async () => {
   if (!state.settings || state.settings.mode === "auto") return;
-  if (!(await ask("完全自動にしますか？\nこれからAIが作った下書きは、承認なしで投稿されます。"))) return;
-  await changeSettings((s) => ({ ...s, mode: "auto" }), "完全自動にしました");
+  if (!(await ask("完全自動にしますか？\nこれから AI が作った下書きは、承認なしで投稿されます。"))) return;
+  await changeSettings((s) => ({ ...s, mode: "auto" }));
 });
 $("pause-btn").addEventListener("click", async () => {
-  if (!state.settings) return;
-  if (state.settings.paused) {
-    await changeSettings((s) => ({ ...s, paused: false }), "再開しました");
-  } else {
-    if (!(await ask("緊急停止しますか？\n下書き作成も投稿も止まります。"))) return;
-    await changeSettings((s) => ({ ...s, paused: true }), "緊急停止しました");
-  }
+  if (!state.settings) { if (!state.conn) toast(MSG.notConnected, true); return; }
+  if (state.settings.paused) { await resume(); return; }
+  if (!(await ask("緊急停止しますか？\n下書きづくりも投稿も止まります。"))) return;
+  await changeSettings((s) => ({ ...s, paused: true }));
 });
+$("resume-btn").addEventListener("click", resume);
 $("plan-now").addEventListener("click", async () => {
+  if (!state.conn) { toast(MSG.notConnected, true); return; }
   const b = $("plan-now");
   b.disabled = true;
   try {
     await runWorkflow("plan.yml");
-    toast("下書きづくりを始めました（1〜2分かかります）");
+    toast(MSG.plan);
     reloadSoon();
   } catch (e) {
     toast(e.message, true);
   }
   setTimeout(() => { b.disabled = false; }, 5000);
 });
-$("reload-btn").addEventListener("click", async () => {
+document.querySelectorAll(".reload-btn").forEach((b) => b.addEventListener("click", async () => {
+  if (!state.conn) { toast(MSG.notConnected, true); return; }
+  b.disabled = true;
   await loadAll();
-  toast(state.loadError ? state.loadError : "読み直しました", !!state.loadError);
-});
+  b.disabled = false;
+}));
 
 // ===== ネタ帳 =====
 $("neta-submit").addEventListener("click", async () => {
+  if (!state.conn) { toast(MSG.notConnected, true); return; }
   const text = $("neta-input").value.split(/\r?\n/).map((l) => l.trim()).filter((l) => l).join("\n");
-  if (!text) { toast("ネタを書いてください", true); return; }
+  if (!text) { $("neta-input").focus(); return; }
   const b = $("neta-submit");
   b.disabled = true;
   try {
     await control("neta-add", "", text);
     $("neta-input").value = "";
-    toast("ネタ帳に追加しました（反映まで1分ほどかかります）");
+    toast(MSG.neta);
     reloadSoon();
   } catch (e) {
     toast(e.message, true);
@@ -797,65 +855,54 @@ $("neta-submit").addEventListener("click", async () => {
 (function buildSettingsForm() {
   const sel = $("set-posts-per-day");
   for (let i = 1; i <= 10; i++) sel.insertAdjacentHTML("beforeend", '<option value="' + i + '">' + i + "件</option>");
+  const options = HOURS.map((t) => '<option value="' + t + '">' + t + "</option>").join("");
   const box = $("times-box");
   for (let i = 1; i <= 10; i++) {
     box.insertAdjacentHTML("beforeend", '<div class="time-wrap" id="time-wrap-' + i + '"><span>' + i + "つ目</span>" +
-      '<input type="time" id="set-time-' + i + '" step="60" value="' + DEFAULT_TIMES[i - 1] + '" aria-label="' + i + 'つ目の投稿時間"></div>');
+      '<select id="set-time-' + i + '" aria-label="' + i + 'つ目">' + options + "</select></div>");
   }
+  fillTimeFields(1, 10);
   sel.addEventListener("change", showTimeFields);
   showTimeFields();
 })();
 
-function toMinutes(t) {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(t || "");
-  return m ? Number(m[1]) * 60 + Number(m[2]) : NaN;
-}
 function readSettingsForm() {
   const n = Number($("set-posts-per-day").value);
-  const times = [];
-  for (let i = 1; i <= n; i++) times.push($("set-time-" + i).value);
   return {
     handle: $("set-handle").value.trim().replace(/^@/, ""),
     persona: $("set-persona").value.trim(),
     audience: $("set-audience").value.trim(),
     themes: $("set-themes").value.split(/\r?\n/).map((t) => t.trim()).filter((t) => t),
     posts_per_day: n,
-    post_times: times,
+    post_times: timeValues(n),
     max_posts_per_day: Number($("set-max-per-day").value),
     max_length: Number($("set-long").value)
   };
 }
 function validateSettings(f) {
   const errors = [];
-  if (!/^[A-Za-z0-9_]{1,15}$/.test(f.handle)) errors.push("アカウント名は、英数字と _ の15文字以内で入れてください。");
+  if (!/^[A-Za-z0-9_]{1,15}$/.test(f.handle)) errors.push("X のアカウント名は、英数字と _ の15文字以内で入れてください。");
   if (!f.themes.length) errors.push("発信テーマを1つ以上入れてください。");
-  const mins = f.post_times.map(toMinutes);
-  if (mins.some((m) => isNaN(m))) errors.push("投稿の時間をすべて入れてください。");
-  else {
-    if (mins.some((m) => m < 6 * 60 + 30 || m > 23 * 60 + 30)) errors.push("投稿の時間は 6:30〜23:30 の間にしてください。");
-    const sorted = mins.slice().sort((a, b) => a - b);
-    for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i] - sorted[i - 1] < 30) { errors.push("投稿の時間は、30分以上あけてください。"); break; }
-    }
-  }
+  if (new Set(f.post_times).size !== f.post_times.length) errors.push("投稿の時間に、同じ時刻が2つあります。");
   const max = f.max_posts_per_day;
   if (!Number.isInteger(max) || max < 1 || max > 50) errors.push("1日の投稿の上限は、1〜50 の数にしてください。");
   else if (max < f.posts_per_day) errors.push("1日の投稿の上限は、1日の投稿の数（" + f.posts_per_day + "件）以上にしてください。");
   return errors;
 }
 $("settings-save").addEventListener("click", async () => {
-  if (!state.conn) { toast("先に GitHub と接続してください", true); return; }
+  if (!state.conn) { toast(MSG.notConnected, true); return; }
   const f = readSettingsForm();
   const errors = validateSettings(f);
   $("settings-errors").innerHTML = errors.map((e) => "<li>" + esc(e) + "</li>").join("");
-  if (errors.length) { toast("保存できません。赤い文字を確かめてください", true); return; }
+  if (errors.length) return;
+  f.post_times = f.post_times.slice().sort();   // 時刻の順に並べて保存
   const b = $("settings-save");
   b.disabled = true;
   try {
     await updateSettings((s) => ({ ...s, ...f }));
-    toast("設定を保存しました");
+    toast(MSG.saved);
     renderSettings(true);
-    renderHome();
+    renderHome(false);
   } catch (e) {
     toast(e.message, true);
   }
@@ -868,20 +915,19 @@ function cleanRepo(v) {
   while (r.endsWith("/")) r = r.slice(0, -1);
   return r.includes("/") ? r.slice(r.lastIndexOf("/") + 1) : r;
 }
-function setConnStatus(html) { $("conn-status").innerHTML = html; }
 $("conn-save").addEventListener("click", async () => {
   const conn = {
     owner: $("conn-owner").value.trim().replace(/^@/, "").replace(/\/+$/, ""),
     repo: cleanRepo($("conn-repo").value),
     token: $("conn-token").value.trim()
   };
+  $("conn-status").textContent = "";
   if (!conn.owner || !conn.repo || !conn.token) {
-    setConnStatus('<div class="notice danger">ユーザー名・リポジトリ名・アクセストークンをすべて入れてください。</div>');
+    $("conn-status").textContent = "GitHub のユーザー名・リポジトリ名・アクセストークンをすべて入れてください。";
     return;
   }
   const b = $("conn-save");
   b.disabled = true;
-  setConnStatus('<div class="notice info">確かめています…</div>');
   const before = state.conn;
   state.conn = conn;
   state.defaultBranch = null;
@@ -890,27 +936,26 @@ $("conn-save").addEventListener("click", async () => {
     storageSet(LS.owner, conn.owner);
     storageSet(LS.repo, conn.repo);
     storageSet(LS.token, conn.token);
-    setConnStatus('<div class="notice info">接続しました（' + esc(conn.owner) + "/" + esc(conn.repo) + "）</div>");
-    toast("接続しました");
+    toast(MSG.connected);
     settingsFilled = false;
     await loadAll();
   } catch (e) {
     state.conn = before;
-    const code = e.status ? "エラー " + e.status + "：" : "";
-    setConnStatus('<div class="notice danger">接続できませんでした。' + esc(code + e.message) + "</div>");
+    $("conn-status").textContent = "接続できませんでした（" + (e.status ? "エラー " + e.status + "：" : "") + e.message + "）";
   }
   b.disabled = false;
 });
-$("conn-clear").addEventListener("click", async () => {
-  if (!(await ask("この端末から、接続の情報（トークンなど）を消しますか？"))) return;
+$("conn-clear").addEventListener("click", () => {
   Object.values(LS).forEach(storageDel);
   ["conn-owner", "conn-repo", "conn-token"].forEach((id) => { $(id).value = ""; });
+  $("conn-status").textContent = "";
   state.conn = null;
   state.settings = null;
   state.queue = []; state.history = []; state.neta = { unused: [], used: [] }; state.runs = [];
   state.defaultBranch = null;
+  state.editing = {}; state.busy = {};
   settingsFilled = false;
-  setConnStatus('<div class="notice info">この端末から消しました。</div>');
+  toast(MSG.disconnected);
   renderAll();
 });
 
@@ -924,10 +969,10 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
   $("conn-token").value = token;
   if (owner && repo && token) {
     state.conn = { owner, repo, token };
+    renderAll();
     loadAll();
   } else {
     renderAll();
-    showView("view-settings");
   }
 })();
 </script>
