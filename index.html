@@ -93,6 +93,9 @@ label { display: block; font-weight: 600; font-size: 14px; margin: 14px 0 6px; }
 #paused-banner button { margin-top: 8px; width: 100%; background: #fff; color: var(--danger); border-color: #fff; }
 .list-plain { list-style: none; margin: 0; padding: 0; }
 .list-plain li { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; overflow-wrap: anywhere; }
+.neta-row { display: flex; align-items: center; gap: 8px; }
+.neta-row .neta-text { flex: 1; min-width: 0; }
+button.neta-delete { flex: none; min-height: 36px; padding: 4px 12px; font-size: 13px; color: var(--danger); border-color: var(--danger); }
 details > summary { cursor: pointer; list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
 details.history-card > summary, details.unposted-card > summary { display: block; }
@@ -288,6 +291,7 @@ const MSG = {
   disconnected: "接続を解除しました",
   saved: "設定を保存しました",
   neta: "ネタを追加しました。1分ほどでネタ帳に入ります",
+  netaDeleted: "削除しました。1分ほどでネタ帳から消えます",
   plan: "下書きの作成を始めました。1〜2分で届きます",
   later: "。1分ほどで反映されます",
   notConnected: "まだ GitHub と接続していません。「設定」の「GitHub との接続」から接続してください"
@@ -594,7 +598,10 @@ function renderHome(force) {
 
 function renderNeta() {
   const { unused, used } = state.neta;
-  $("neta-pending-list").innerHTML = unused.map((n) => "<li>" + esc(n) + "</li>").join("");
+  $("neta-pending-list").innerHTML = unused.map((n, i) =>
+    '<li class="neta-row"><span class="neta-text">' + esc(n) + "</span>" +
+    '<button type="button" class="neta-delete" data-index="' + (i + 1) + '"' + (netaDeleting[n] ? " disabled" : "") + ">削除</button></li>"
+  ).join("");
   $("neta-used-list").innerHTML = used.slice(0, 50).map((n) => "<li>" + esc(n) + "</li>").join("");
 }
 
@@ -834,6 +841,29 @@ document.querySelectorAll(".reload-btn").forEach((b) => b.addEventListener("clic
 }));
 
 // ===== ネタ帳 =====
+// 「これから使うネタ」の削除：番号と本文を送り、本文が同じときだけ消してもらう
+const netaDeleting = {};
+$("neta-pending-list").addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("button.neta-delete");
+  if (!btn) return;
+  if (!state.conn) { toast(MSG.notConnected, true); return; }
+  const index = Number(btn.dataset.index);
+  const text = state.neta.unused[index - 1];
+  if (text == null) return;
+  if (!window.confirm("このネタを削除しますか？")) return;
+  btn.disabled = true;
+  try {
+    await control("neta-delete", String(index), text);
+    netaDeleting[text] = true;
+    setTimeout(() => { delete netaDeleting[text]; renderNeta(); }, 3 * 60 * 1000);
+    toast(MSG.netaDeleted);
+    reloadSoon();
+  } catch (e) {
+    btn.disabled = false;
+    toast(e.message, true);
+  }
+});
+
 $("neta-submit").addEventListener("click", async () => {
   if (!state.conn) { toast(MSG.notConnected, true); return; }
   const text = $("neta-input").value.split(/\r?\n/).map((l) => l.trim()).filter((l) => l).join("\n");
